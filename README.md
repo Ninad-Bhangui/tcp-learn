@@ -40,4 +40,6 @@ The tcp server performs the following steps:
     *   cast sin\_addr from above (either in\_addr or in6\_addr struct) to sockaddr and pass to inet\_ntop.
     *   inet\_ntop returns string from address\_family, sockaddr, and length.
 
-7.  `send`: Finally use new socket descriptor from accept. pass it string buffer, length and flags to send something to client.
+7.  `send`: Finally use new socket descriptor from accept. pass it string buffer, length and flags to send something to client. 
+    Make sure this is in a different forked process to not block the main one and close sockfd in forked and newfd in parent.
+
