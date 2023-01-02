@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <asm-generic/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <poll.h>
@@ -11,7 +12,26 @@
 
 #define PORT "9034"
 #define BACKLOG 5
+void *get_agnostic_addr(struct sockaddr *addr) {
+  if (addr->sa_family == AF_INET) {
+    struct sockaddr_in *v4addr = (struct sockaddr_in *)addr;
+    return &(v4addr->sin_addr);
+  }
+  struct sockaddr_in6 *v6addr = (struct sockaddr_in6 *)addr;
+  return &(v6addr->sin6_addr);
+}
 
+int add_to_fd_list(struct pollfd **poll_fd_list, int new_fd, int *fd_count,
+                   int *fd_size) {
+  if (*fd_count == *fd_size) {
+    fprintf(stderr, "could not add to fd list, limit reached\n");
+    return 1;
+  }
+  (*poll_fd_list)[*fd_count].fd = new_fd;
+  (*poll_fd_list)[*fd_count].events = POLLIN;
+  (*fd_count)++;
+  return 0;
+}
 int get_listener() {
   struct addrinfo hints = {0}, *servinfo, *p;
   int listener;
@@ -26,10 +46,16 @@ int get_listener() {
   }
   for (p = servinfo; p != NULL; p = p->ai_next) {
     listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) ==
+        -1) {
+      perror("server:setsockopt");
+      exit(1);
+    }
     if (bind(listener, p->ai_addr, p->ai_addrlen) == -1) {
       perror("server:bind");
       exit(1);
     }
+    break;
   }
   if (p == NULL) {
     fprintf(stderr, "no address found");
@@ -44,5 +70,17 @@ int get_listener() {
 int main() {
   int listener;
   listener = get_listener();
-  printf("server: listening now");
+  printf("server: listening now\n");
+
+  int fd_count = 0;
+  int fd_size = 5;
+  struct pollfd *poll_fd_list = malloc(sizeof *poll_fd_list * fd_size);
+
+  for (;;) {
+    int poll_count = poll(poll_fd_list, fd_size, -1);
+    if (poll_count == -1) {
+      perror("server:poll");
+      exit(1);
+    }
+  }
 }
