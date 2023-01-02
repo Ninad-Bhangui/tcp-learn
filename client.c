@@ -34,7 +34,6 @@ int main(int argc, char *argv[]) {
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
-  hints.ai_flags = AI_PASSIVE;
 
   if (argc != 3) {
     fprintf(stderr, "not enough arguments. first argument should be address "
