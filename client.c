@@ -36,17 +36,25 @@ int main(int argc, char *argv[]) {
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  if ((status = getaddrinfo(argv[1], "3490", &hints, &servinfo)) != 0) {
+  if (argc != 3) {
+    fprintf(stderr, "not enough arguments. first argument should be address "
+                    "and second port");
+    return 1;
+  }
+  if ((status = getaddrinfo(argv[1], argv[2], &hints, &servinfo)) != 0) {
     fprintf(stderr, "client: getaddrinfo: %s\n", gai_strerror(status));
     return 1;
   }
   for (p = servinfo; p != NULL; p = p->ai_next) {
+    char address_str[INET6_ADDRSTRLEN];
+    struct sock_addr *in_addr = get_in_addr(p->ai_addr);
+    inet_ntop(p->ai_family, in_addr, address_str, sizeof address_str);
+    printf("debug:client: iterating through address: %s\n", address_str);
     sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
     if (sockfd == -1) {
       perror("client: socket");
       continue;
     }
-    struct sock_addr *in_addr = get_in_addr(p->ai_addr);
     if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
       close(sockfd);
       perror("client: connect");
