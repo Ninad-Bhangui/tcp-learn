@@ -43,3 +43,12 @@ The tcp server performs the following steps:
 7.  `send`: Finally use new socket descriptor from accept. pass it string buffer, length and flags to send something to client. 
     Make sure this is in a different forked process to not block the main one and close sockfd in forked and newfd in parent.
 
+## client
+
+The tcp client performed following steps:
+
+1. `getaddrinfo`: Gets list of addresses. Pass it the right host and port.
+2. `socket`: create an actual socket and return file descriptor. (Same as server)
+3. `connect`: connects socket to specified address. 0 on success, -1 on error with errno set.
+4. Get ip address details from server to log same as server using `inet_ntop`.
+5. `recv`:  recieve message from socket. returns number of bytes received or -1 on error with errno set.
