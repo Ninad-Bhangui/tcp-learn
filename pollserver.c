@@ -24,13 +24,25 @@ int get_listener() {
     fprintf(stderr, "some error with getaddrinfo"); // TODO: get actual error
     exit(1);
   }
-for(p=servinfo;p!=NULL;p=p->ai_next){
-    listener = socket(p->ai_family,p->ai_socktype,p->ai_protocol);
-    
-}
-  bind(listener, const struct sockaddr *addr, socklen_t len) return listener;
+  for (p = servinfo; p != NULL; p = p->ai_next) {
+    listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (bind(listener, p->ai_addr, p->ai_addrlen) == -1) {
+      perror("server:bind");
+      exit(1);
+    }
+  }
+  if (p == NULL) {
+    fprintf(stderr, "no address found");
+    exit(1);
+  }
+  if (listen(listener, BACKLOG) == -1) {
+    perror("server:listen");
+    exit(1);
+  }
+  return listener;
 }
 int main() {
   int listener;
   listener = get_listener();
+  printf("server: listening now");
 }
