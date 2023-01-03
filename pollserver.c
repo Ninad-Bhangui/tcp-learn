@@ -12,6 +12,7 @@
 
 #define PORT "9034"
 #define BACKLOG 5
+#define MESSAGE_SIZE 50
 void *get_agnostic_addr(struct sockaddr *addr) {
   if (addr->sa_family == AF_INET) {
     struct sockaddr_in *v4addr = (struct sockaddr_in *)addr;
@@ -106,8 +107,16 @@ int main() {
           add_to_fd_list(&poll_fd_list, new_fd, &fd_count, &fd_size);
 
         } else {
+          char message[MESSAGE_SIZE];
+          int bytes_recieved =
+              recv(poll_fd_list[i].fd, message, MESSAGE_SIZE, 0);
+          if (bytes_recieved == -1) {
+            perror("server:message");
+          }
+          printf("got message %s", message);
         }
       }
     }
   }
+  close(listener);
 }
