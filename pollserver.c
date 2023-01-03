@@ -82,5 +82,32 @@ int main() {
       perror("server:poll");
       exit(1);
     }
+    for (int i = 0; i < fd_size; i++) {
+      // CAN BE POLLED
+      if (poll_fd_list[i].revents && POLLIN) {
+        // Is listener ready
+        if (poll_fd_list[i].fd == listener) {
+          //
+          int new_fd;
+          struct sockaddr_storage client_addr;
+          char client_addr_str[INET6_ADDRSTRLEN];
+          socklen_t client_addr_len = sizeof client_addr;
+          struct sockaddr *client_addr_in = (struct sockaddr *)&client_addr;
+          new_fd = accept(listener, client_addr_in, &client_addr_len);
+          if (new_fd == -1) {
+            perror("server:accept");
+            continue;
+          }
+          struct sockaddr_in *agnostic_client_addr =
+              get_agnostic_addr(client_addr_in);
+          inet_ntop(client_addr.ss_family, agnostic_client_addr,
+                    client_addr_str, sizeof client_addr_str);
+          printf("Got connection from %s\n", client_addr_str);
+          add_to_fd_list(&poll_fd_list, new_fd, &fd_count, &fd_size);
+
+        } else {
+        }
+      }
+    }
   }
 }
