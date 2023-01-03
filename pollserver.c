@@ -76,6 +76,8 @@ int main() {
   int fd_count = 0;
   int fd_size = 5;
   struct pollfd *poll_fd_list = malloc(sizeof *poll_fd_list * fd_size);
+  poll_fd_list[0].fd = listener;
+  poll_fd_list[0].events = POLLIN;
 
   for (;;) {
     int poll_count = poll(poll_fd_list, fd_size, -1);
@@ -108,10 +110,21 @@ int main() {
 
         } else {
           char message[MESSAGE_SIZE];
+          int sender = poll_fd_list[i].fd;
           int bytes_recieved =
               recv(poll_fd_list[i].fd, message, MESSAGE_SIZE, 0);
           if (bytes_recieved == -1) {
-            perror("server:message");
+            perror("server:recv");
+          }
+          for (int j = 0; j < fd_size; j++) {
+            if (poll_fd_list[j].fd != listener &&
+                poll_fd_list[j].fd != sender) {
+              int bytes_sent =
+                  send(poll_fd_list[j].fd, message, MESSAGE_SIZE, 0);
+              if (bytes_sent == -1) {
+                perror("server:send");
+              }
+            }
           }
           printf("got message %s", message);
         }
