@@ -33,6 +33,13 @@ int add_to_fd_list(struct pollfd **poll_fd_list, int new_fd, int *fd_count,
   (*fd_count)++;
   return 0;
 }
+
+void delete_from_fd_list(struct pollfd **poll_fd_list, int i, int *fd_count,
+                         int *fd_size) {
+  // Copy the last fd to this one
+  (*poll_fd_list)[i] = (*poll_fd_list)[*fd_count - 1];
+  (*fd_count)--;
+}
 int get_listener() {
   struct addrinfo hints = {0}, *servinfo, *p;
   int listener;
@@ -78,6 +85,7 @@ int main() {
   struct pollfd *poll_fd_list = malloc(sizeof *poll_fd_list * fd_size);
   poll_fd_list[0].fd = listener;
   poll_fd_list[0].events = POLLIN;
+  fd_count++;
 
   for (;;) {
     int poll_count = poll(poll_fd_list, fd_size, -1);
@@ -85,7 +93,7 @@ int main() {
       perror("server:poll");
       exit(1);
     }
-    for (int i = 0; i < fd_size; i++) {
+    for (int i = 0; i < fd_count; i++) {
       // CAN BE POLLED
       if (poll_fd_list[i].revents && POLLIN) {
         // Is listener ready
@@ -113,10 +121,16 @@ int main() {
           int sender = poll_fd_list[i].fd;
           int bytes_recieved =
               recv(poll_fd_list[i].fd, message, MESSAGE_SIZE, 0);
-          if (bytes_recieved == -1) {
-            perror("server:recv");
+          if (bytes_recieved <= 0) {
+            if (bytes_recieved == 0) {
+              printf("pollserver: socket %d hung up\n", sender);
+            } else {
+              perror("server:recv");
+            }
+            close(poll_fd_list[i].fd);
+            delete_from_fd_list(&poll_fd_list, i, &fd_count, &fd_size);
           }
-          for (int j = 0; j < fd_size; j++) {
+          for (int j = 0; j < fd_count; j++) {
             if (poll_fd_list[j].fd != listener &&
                 poll_fd_list[j].fd != sender) {
               int bytes_sent =
